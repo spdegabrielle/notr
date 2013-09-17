@@ -1,6 +1,6 @@
 #lang racket/gui
 ;; noter  (C) Stephen De Gabrielle GPL 2 +
-;(module noter mzscheme
+
   (require 
    (lib "mred.ss" "mred")
    (lib "framework.ss" "framework")
@@ -74,7 +74,7 @@
       (send the-keymap add-function "Return to text-field-object" 
             (lambda (text-field-object x) (send the-text-field focus)))
       (send the-keymap map-function "c:q" "Return to text-field-object")
-      (hash-table-put! textdb description the-new-text)
+      (hash-set! textdb description the-new-text)
       ))
   
   
@@ -85,7 +85,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
   ;; DEFINE THE DB - HASHTABLE USED  ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
-  (define textdb (make-hash-table 'equal))
+  (define textdb (make-hasheq))
   ;; key used is the description string
   ;; value is a text% object
   
@@ -94,7 +94,7 @@
   ;;
   (define (matcher description hashtable)
     (let ((terms (splitter description)); terms from the query
-          (list-of-keys (hash-table-map textdb (lambda (k v) k )))
+          (list-of-keys (hash-map textdb (lambda (k v) k )))
           ) 
       (sorter (filter (lambda (k) ; sorted  list of documents that are the result of a logical and of search terms
                         (andmap (lambda (t) (pregexp-match-string-foldcase t k))
@@ -104,16 +104,16 @@
   
   ;; messages/methods required
   
-  ;(list-of-keys (hash-table-map textdb (lambda (k v) k )))
+  ;(list-of-keys (hash-map textdb (lambda (k v) k )))
   
-  ;(current-text (hash-table-get textdb description #f))
+  ;(current-text (hash-ref textdb description #f))
   ;(send the-list-box set (matcher description textdb)) ; update list-box to show all matching
   ;(send the-list-box set (matcher description textdb))
   
-  ;(send the-editor-canvas set-editor (hash-table-get textdb description #f))
-  ;(send the-editor-canvas set-editor (hash-table-get textdb description #f))))
+  ;(send the-editor-canvas set-editor (hash-ref textdb description #f))
+  ;(send the-editor-canvas set-editor (hash-ref textdb description #f))))
   
-  ;(open-output-text-editor (hash-table-get textdb description #f)) ;print to outport port
+  ;(open-output-text-editor (hash-ref textdb description #f)) ;print to outport port
   ;;;;;;;;;;;;
   
   ;;;;;;;;;;;;;;;
@@ -126,14 +126,14 @@
       (cond
         [(eq? this-event 'text-field-enter) ; create a new note or open existing one.
          (let ; is it a new description?
-             ((current-text (hash-table-get textdb description #f))) ; returns #f if a new key
+             ((current-text (hash-ref textdb description #f))) ; returns #f if a new key
            (cond
              [(eq? current-text #f) ;if a new key
               (make-new-document description) ; make a new text% in textdb with key description
               (send the-list-box set (matcher description textdb)) ; update list-box to show all matching
               ;(send the-list-box append description); add description to list box
               (send the-list-box set-string-selection description) ;and make current selection
-              (send the-editor-canvas set-editor (hash-table-get textdb description #f))
+              (send the-editor-canvas set-editor (hash-ref textdb description #f))
               (send the-editor-canvas focus)
               ]
              [else
@@ -153,9 +153,9 @@
     
     (let ((this-event (send ce get-event-type)); always (eq? this-event 'list-box) 
           (description (send list-box-object get-string-selection))); get-data (car (send list-box-object get-selections)))))
-      ; (printf "called ~a ~a ~n" (hash-table-get textdb description #f) description) ;
+      ; (printf "called ~a ~a ~n" (hash-ref textdb description #f) description) ;
       (send the-text-field set-value description) 
-      (send the-editor-canvas set-editor (hash-table-get textdb description #f))))
+      (send the-editor-canvas set-editor (hash-ref textdb description #f))))
   
   ;; dropped-file-callback : path -> void
   ;; called when a file or directory is dropped on noter
@@ -169,8 +169,8 @@
            (send the-text-field set-value path-description)
            (the-text-field-callback the-text-field (new control-event% (event-type 'text-field-enter)))
            ;;  send copy of file to text-editor
-           (send (hash-table-get textdb path-description #f) load-file path 'guess #f) 
-           ;           (fprintf (open-output-text-editor (hash-table-get textdb path-description #f)) ;print to outport port
+           (send (hash-ref textdb path-description #f) load-file path 'guess #f) 
+           ;           (fprintf (open-output-text-editor (hash-ref textdb path-description #f)) ;print to outport port
            ;                    (call-with-input-file path ;; mzscheme accepts path datatype
            ;                      (λ (input-port) (read-string 1000 input-port)) 'text))   ; data to print from file
            )]
@@ -248,4 +248,4 @@
   ;(append-editor-operation-menu-items the-edit-menu #f)
   
   (send the-the-frame show #t) 
-  ;)
+
