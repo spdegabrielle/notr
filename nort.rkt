@@ -1,5 +1,6 @@
+#lang racket/gui
 ;; noter  (C) Stephen De Gabrielle GPL 2 +
-(module noter mzscheme
+;(module noter mzscheme
   (require 
    (lib "mred.ss" "mred")
    (lib "framework.ss" "framework")
@@ -247,4 +248,4 @@
   ;(append-editor-operation-menu-items the-edit-menu #f)
   
   (send the-the-frame show #t) 
-  )
+  ;)
