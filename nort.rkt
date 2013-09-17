@@ -1,48 +1,21 @@
 #lang racket/gui
 ;; noter  (C) Stephen De Gabrielle GPL 2 +
 
-
-(require 
- (lib "mred.ss" "mred")
- (lib "framework.ss" "framework")
- ; reserved for future expansion
- (lib "class.ss")
- (lib "list.ss")
- (lib "pregexp.ss"))
+(require framework)
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; helper methods ;;  
 ;;;;;;;;;;;;;;;;;;;;
 
-;; pregexp-match : query -> string-to-match
-(define (pregexp-match-string-foldcase query string-to-match)
-  (pregexp-match (string-foldcase query) (string-foldcase string-to-match)))
-
 ;; word-filter: pre-word -> List of matching terms
 ;; rerturns a list of strings that contain the query 
 (define (word-filter query terms)
-  (filter (lambda (string-to-match) (pregexp-match-string-foldcase query string-to-match)) terms)) 
-;;
-;; splitter : string -> list of strings
-;; splitter ; split string on ANY whitespace
-(define (splitter a-string)
-  (pregexp-split "\\s+" a-string))
-;;
-(define (strip-non-alphanumerical a-string) ; improve this
-  (pregexp-replace* 
-   "\\s+$" 
-   ;; remove trailing space
-   (pregexp-replace* 
-    "\\s+" ; remove multiple spaces
-    ; remove non alphanum 
-    (pregexp-replace* "[^[:alnum:]]+" a-string " ") " ") ""))
+  (filter (lambda (string-to-match) (string-ci=? query string-to-match)) terms)) 
 
 ;; sorter:  a-list-of-strings ->  a-list-of-strings
 ;; sorts list in a case insensitive/alphabetical manner
 (define (sorter a-list-of-strings)
   (sort a-list-of-strings string-ci<?))
-
-;;; app specific
 
 ;; make-new-document: description -> void
 ; makes a new editor (text%) with autowrap #t and modified keymap
@@ -57,13 +30,7 @@
     (send the-keymap add-function "Return to text-field-object" 
           (lambda (text-field-object x) (send the-text-field focus)))
     (send the-keymap map-function "c:q" "Return to text-field-object")
-    (hash-set! textdb description the-new-text)
-    ))
-
-
-(define (noter-import)
-  (void))
-
+    (hash-set! textdb description the-new-text)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
 ;; DEFINE THE DB - HASHTABLE USED  ;;
@@ -76,27 +43,12 @@
 ;; split description, find keys that match description 
 ;;
 (define (matcher description hashtable)
-  (let ((terms (splitter description)); terms from the query
+  (let ((terms (string-split description)); terms from the query
         (list-of-keys (hash-map textdb (lambda (k v) k)))) 
-    (sorter (filter (lambda (k) ; sorted  list of documents that are the result of a logical and of search terms
-                      (andmap (lambda (t) (pregexp-match-string-foldcase t k))
-                              terms) ; return #f for not include
-                      ) list-of-keys))
-    ))
-
-;; messages/methods required
-
-;(list-of-keys (hash-map textdb (lambda (k v) k )))
-
-;(current-text (hash-ref textdb description #f))
-;(send the-list-box set (matcher description textdb)) ; update list-box to show all matching
-;(send the-list-box set (matcher description textdb))
-
-;(send the-editor-canvas set-editor (hash-ref textdb description #f))
-;(send the-editor-canvas set-editor (hash-ref textdb description #f))))
-
-;(open-output-text-editor (hash-ref textdb description #f)) ;print to outport port
-;;;;;;;;;;;;
+     ; sorted  list of documents that are the result of a logical and of search terms
+    (sorter (filter (lambda (k)
+                      (andmap (lambda (t) (string-ci=? t k))
+                              terms)) list-of-keys))))
 
 ;;;;;;;;;;;;;;;
 ;; callbacks ;;
@@ -132,101 +84,34 @@
 
 
 (define (the-list-box-callback list-box-object ce) ; ce:control-event-returned
-  
   (let ((this-event (send ce get-event-type)); always (eq? this-event 'list-box) 
-        (description (send list-box-object get-string-selection))); get-data (car (send list-box-object get-selections)))))
-    ; (printf "called ~a ~a ~n" (hash-ref textdb description #f) description) ;
+        (description (send list-box-object get-string-selection)))
     (send the-text-field set-value description) 
     (send the-editor-canvas set-editor (hash-ref textdb description #f))))
-
-;; dropped-file-callback : path -> void
-;; called when a file or directory is dropped on noter
-(define (dropped-file-callback path)
-  (let ((path-description (strip-non-alphanumerical (path->string path)))) ;; use path as default description
-    (cond 
-      [(file-exists? path) ;; refers to a specific file 
-       (let
-           ((description (path->string path))) ; is this still needed?
-         
-         (send the-text-field set-value path-description)
-         (the-text-field-callback the-text-field (new control-event% (event-type 'text-field-enter)))
-         ;;  send copy of file to text-editor
-         (send (hash-ref textdb path-description #f) load-file path 'guess #f) 
-         ;           (fprintf (open-output-text-editor (hash-ref textdb path-description #f)) ;print to outport port
-         ;                    (call-with-input-file path ;; mzscheme accepts path datatype
-         ;                      (λ (input-port) (read-string 1000 input-port)) 'text))   ; data to print from file
-         )]
-      [(directory-exists? path) (find-files (λ args #t) path)];; refers to a directory
-       
-      
-      [else    
-       (begin
-         (send the-text-field focus)
-         (send the-text-field set-value (path->string path)) 
-         )])
-    (printf "~a~n" path)))
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; GUI definition  ;;
 ;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;
-;; Classes         ;;
-;;;;;;;;;;;;;;;;;;;;;
-(define a-drop-frame%
-  (class frame:standard-menus%
-    (define/override (on-drop-file e) 
-      (dropped-file-callback e)
-      (super on-drop-file e))
-    (super-instantiate ()))) 
-
-(define a-rich-text%
-  (class frame:standard-menus%
-    (define/override (on-drop-file e) 
-      (dropped-file-callback e)
-      (super on-drop-file e))
-    (super-instantiate ()))) 
-
-
-;text:basic%
-
-
-;;;;;;;;;;;;;;;;;;;;;
 ;; Objects         ;;
 ;;;;;;;;;;;;;;;;;;;;;
-(define the-the-frame
-  (new a-drop-frame%
+(define notr-frame
+  (new frame%
        (label "Noter - with incremental")
        (width 600)
        (height 600)))
+(send notr-frame show #t) 
 
-(define the-frame (send the-the-frame get-area-container))
-
-(send the-frame accept-drop-files #t)
 ;; Add the 'description' text field 
-(define the-text-field (instantiate text-field% (#f the-frame the-text-field-callback)))
+(define the-text-field (instantiate text-field% (#f notr-frame the-text-field-callback)))
 
-
-(define the-vertical-pane
+(define the-vertical-panel
   (new panel:vertical-dragable%
-       (parent the-frame)))
+       (parent notr-frame)))
 ;; add the matching descriptions list box
 (define the-list-box
-  (instantiate list-box% ("" '("") the-vertical-pane the-list-box-callback)
+  (instantiate list-box% ("" '("") the-vertical-panel the-list-box-callback)
     (stretchable-height #f)
     (min-height 80)))
-
-(define the-editor-canvas (instantiate canvas:basic% (the-vertical-pane)))
-; (send the-editor-canvas accept-drop-files #t)
-; (send the-editor-canvas allow-tab-exit #t) 
-
-;(define the-pasteboard (instantiate pasteboard% ()))
-;(send the-editor-canvas set-editor the-pasteboard)
-
-;(send the-editor-canvas set-editor the-text)
-
-;(define the-menu-bar (instantiate menu-bar% (the-frame)))
-;(define the-edit-menu (instantiate menu% ("Edit" the-menu-bar)))
-;(append-editor-operation-menu-items the-edit-menu #f)
-
-(send the-the-frame show #t) 
+(define the-editor-canvas (instantiate canvas:basic% (the-vertical-panel)))
