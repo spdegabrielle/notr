@@ -3,6 +3,7 @@
 
 (require framework)
 
+
 ;;;;;;;;;;;;;;;;;;;;
 ;; helper methods ;;  
 ;;;;;;;;;;;;;;;;;;;;
@@ -45,7 +46,7 @@
 (define (matcher description hashtable)
   (let ((terms (string-split description)); terms from the query
         (list-of-keys (hash-map textdb (lambda (k v) k)))) 
-     ; sorted  list of documents that are the result of a logical and of search terms
+    ; sorted  list of documents that are the result of a logical and of search terms
     (sorter (filter (lambda (k)
                       (andmap (lambda (t) (string-ci=? t k))
                               terms)) list-of-keys))))
@@ -60,23 +61,27 @@
     (cond
       [(eq? this-event 'text-field-enter) ; create a new note or open existing one.
        (let ; is it a new description?
-           ((current-text (hash-ref textdb description #f))) ; returns #f if a new key
+           ((current-text (hash-ref textdb description #f))) ; returns #f if a new document
          (cond
-           [(eq? current-text #f) ;if a new key
-            (make-new-document description) ; make a new text% in textdb with key description
-            (send the-list-box set (matcher description textdb)) ; update list-box to show all matching
-            ;(send the-list-box append description); add description to list box
-            (send the-list-box set-string-selection description) ;and make current selection
-            (send the-editor-canvas set-editor (hash-ref textdb description #f))
-            (send the-editor-canvas focus)
-            ]
-           [else
-            (begin ; (open)switch to matching text object(note)
-              (send the-editor-canvas set-editor current-text)
-              (send the-editor-canvas focus))
+           [(eq? current-text #f) ;if a new document
+            (let  ; (open)switch to matching text object(note)
+                ((editor (send the-editor-canvas get-editor current-text)))
+              (send the-editor-canvas focus)
+              (send editor erase)
+              (send the-list-box set (matcher description textdb)) ; update list-box to show all matching
+              (send the-list-box append description); add description to list box
+              (send the-list-box set-string-selection description) ;and make current selection
+              )]
+           [else  ;; current-text contains an existing text note
+            (let ((editor (send the-editor-canvas get-editor current-text)))
+              (send the-editor-canvas focus)
+              (send editor erase)
+              (send editor insert current-text)
+              )
             ;;
             ]))]
-      [else (begin
+      [else ;; some other key was pressed
+       (begin
               (send the-list-box set (matcher description textdb)) ;;
               ;; (printf "~a~n" description )
               )])) ; not 'text-field-enter - search (interactive match) and auto-completion go here
@@ -92,7 +97,7 @@
 ;;;;;;;;;;;;;;;;;;;;;
 ;; GUI definition  ;;
 ;;;;;;;;;;;;;;;;;;;;;
-
+(define editor (new text%))
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Objects         ;;
 ;;;;;;;;;;;;;;;;;;;;;
@@ -114,4 +119,6 @@
   (instantiate list-box% ("" '("") the-vertical-panel the-list-box-callback)
     (stretchable-height #f)
     (min-height 80)))
-(define the-editor-canvas (instantiate canvas:basic% (the-vertical-panel)))
+(define the-editor-canvas (new editor-canvas%  
+                               (parent the-vertical-panel)
+                               [editor editor]))
