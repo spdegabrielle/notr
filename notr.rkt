@@ -68,10 +68,9 @@
     (define/public (save title text)
       (new title text)) ;; synonym with 
     
-    ;; load : title
+    ;; load : query-or-title
     (define/public (load query-or-title)
-      (hash-ref textdb query-or-title #f)
-      text)
+      (hash-ref textdb query-or-title #f))
     
     
     ;; return a list of titles on notes dabase
@@ -93,7 +92,7 @@
 (define notr% 
   (class object%
     
-    (define notes (new notes-databse$))
+    (define notes (new notes-database%))
     
     ;; matcher: description hashtable -> matching keys
     ;; split description, find keys that match description 
