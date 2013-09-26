@@ -47,7 +47,9 @@
     ;; load : query-or-title -> 
     (define/public (load title) (hash-ref textdb title #f))
     ;; return a list of titles on notes dabase
-    (define/public (list) (hash-map textdb (lambda (k v) k)))))
+    (define/public (list) (hash-map textdb (lambda (k v) k)))
+    ;;delete : key -> key
+    (define/public (delete key) (hash-remove! textdb key))))
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; GUI definition  ;;
@@ -66,21 +68,7 @@
         (sorter (filter (lambda (k)
                           (andmap (lambda (t) (string-ci=? t k))
                                   terms)) list-of-keys))))
-    
-    ;; make-new-document: description -> void
-    ; makes a new editor (text%) with autowrap #t and modified keymap
-    ; updates the textdb global hash with the description as the key and the new %text as the value.
-    ; This should be in new class definition
-    (define (make-new-document description) void
-      ;(let* ; create new text object (note)
-      ;   (;(the-new-text (instantiate text% ()))
-      ;(the-keymap (send the-new-text get-keymap)))
-      ;(send the-new-text auto-wrap #t)
-      ;    (keymap:setup-global the-keymap)
-      ;    (send the-keymap add-function "Return to text-field-object" 
-      ;          (lambda (text-field-object x) (send the-text-field focus)))
-      ;    (send the-keymap map-function "c:q" "Return to text-field-object"))
-      )
+   
     
     ;; the-list-box-callback : list-box-object ce -> 
     ;;
