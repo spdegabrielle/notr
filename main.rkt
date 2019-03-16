@@ -1,8 +1,33 @@
 #lang racket/gui
-;; noter  (C) Stephen De Gabrielle GPL 2 +
+
 (require framework)
-;;Noter; 
-;
+
+(module+ test
+  (require rackunit))
+
+;; Notice
+;; To install (from within the package directory):
+;;   $ raco pkg install
+;; To install (once uploaded to pkgs.racket-lang.org):
+;;   $ raco pkg install <<name>>
+;; To uninstall:
+;;   $ raco pkg remove <<name>>
+;; To view documentation:
+;;   $ raco docs <<name>>
+;;
+;; For your convenience, we have included a LICENSE.txt file, which links to
+;; the GNU Lesser General Public License.
+;; If you would prefer to use a different license, replace LICENSE.txt with the
+;; desired license.
+;;
+;; Some users like to add a `private/` directory, place auxiliary files there,
+;; and require them in `main.rkt`.
+;;
+;; See the current version of the racket style guide here:
+;; http://docs.racket-lang.org/style/index.html
+
+;; Code here
+
 ;Query/title box
 ;- typing searches and displays a list of matching notes (matched by title/query)
 ;- on enter creates new or edits existing text note
@@ -29,7 +54,13 @@
 (define (sorter a-list-of-strings)
   (sort a-list-of-strings string-ci<?))
 
-
+;; textfield% control-event%
+;(define (textfield-callback tf event)
+;  (if (equal? (send event get-event-type) 'text-field-enter)
+;      (create-new-note (send a-text-field get-value))
+;      (update-results (send a-text-field get-value)))
+;  void)
+  
 
 (define notes-database% 
   (class* object% ((interface () new save load list))
@@ -47,13 +78,9 @@
     ;; load : query-or-title -> 
     (define/public (load title) (hash-ref textdb title #f))
     ;; return a list of titles on notes dabase
-    (define/public (list) (hash-map textdb (lambda (k v) k)))
+    (define/public (list) (hash-keys textdb))
     ;;delete : key -> key
     (define/public (delete key) (hash-remove! textdb key))))
-
-;;;;;;;;;;;;;;;;;;;;;
-;; GUI definition  ;;
-;;;;;;;;;;;;;;;;;;;;;
 
 (define notr% 
   (class object%
@@ -120,7 +147,7 @@
              (init-field on-change-callback)
              (inherit get-text)
              (super-new)
-             (define (on-change)
+             (define (on-change )
                (on-change-callback (get-text))
                )
              (augment on-change)
@@ -132,7 +159,7 @@
     ;;;;;;;;;;;;;;;;;;;;;
     (define notr-frame
       (new frame%
-           (label "Noter - with incremental")
+           (label "Noter - with incremental search")
            (width 600)
            (height 600)))
     (send notr-frame show #t) 
@@ -141,7 +168,7 @@
     (define the-text-field (new text-field% 
                                 (label #f) 
                                 (parent notr-frame)
-                                (the-text-field-callback )))
+                                (callback the-text-field-callback )))
     
     (define the-vertical-panel
       (new panel:vertical-dragable%
@@ -157,4 +184,20 @@
     
     
     ))
-(new notr%)
+
+(module+ test
+  ;; Any code in this `test` submodule runs when this file is run using DrRacket
+  ;; or with `raco test`. The code here does not run when this file is
+  ;; required by another module.
+
+  (check-equal? (+ 2 2) 4))
+
+(module+ main
+  ;; (Optional) main submodule. Put code here if you need it to be executed when
+  ;; this file is run using DrRacket or the `racket` executable.  The code here
+  ;; does not run when this file is required by another module. Documentation:
+  ;; http://docs.racket-lang.org/guide/Module_Syntax.html#%28part._main-and-test%29
+  (application:current-app-name "notr")
+  (new notr%)
+  
+  )
